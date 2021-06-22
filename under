@@ -1,0 +1,58 @@
+#!/bin/bash
+#
+# Copyright (c) 2021 Dave D
+#
+# recursively iterate through each file under a directory and do cmd
+# only to each file and not to directories, symlinks or special files
+#
+#  under -d"</abs/path/to/dir>" -c"<cmd and its options>"
+#
+ 
+function dirstep {
+  for file in "$@"/*
+    do
+      if [ -d "$file" ]
+      then
+#       echo "+++${file}+++ is a directory"
+        cd "${file}"
+        dirstep "$file"
+      elif [ -f "$file" ]
+      then
+#       echo "+++${file}+++ is a file"
+        ${CMD} "${file}"
+      fi
+    done
+}
+ 
+TEMP=`getopt -o c:d: --long command:,directory: \\
+     -n \'under\' -- "$@"`
+ 
+if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
+ 
+# Note the quotes around $TEMP
+eval set -- "$TEMP"
+ 
+while true ; do
+        case "$1" in
+                -c|--command) CMD=$2 ; shift 2 ;;
+                -d|--directory) DIR=$2 ; shift 2 ;;
+                --) shift ; break ;;
+                *) echo "Internal error!" ; exit 1 ;;
+        esac
+done
+ 
+#echo "directory:"$DIR
+#echo "command:"$CMD
+#echo "Remaining arguments:"
+#for arg do echo \'--> \'"\\`$arg\'" ; done
+ 
+ 
+if [ "$CMD" = "" ] || [ "$DIR" = "" ] ;
+then
+  echo "   Under - Recursively run command on each regular file under dir"
+  echo
+  echo "   Usage: under -d\\"/abs/path/to/directory\\" -c\\"command\\"" ;
+  exit 1
+else
+  dirstep "$DIR"
+fi
